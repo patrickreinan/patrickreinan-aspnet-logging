@@ -51,8 +51,10 @@ namespace patrickreinan_aspnet_logging
                         >= 500 and <= 599 => LogLevel.Error,
                         _ => LogLevel.Information
                     };
-                    
-                    logger.Log<PRLoggerState>(logLevel, new EventId(0),new PRLoggerState(true), null, null!);
+
+                    var state = new PRLoggerState(true);
+                    var eventId = new EventId(0, logLevel.ToString());
+                    logger.Log<PRLoggerState>(logLevel, eventId, state, null, (_, _) => null!);
                     await Task.CompletedTask;
                 });
                 await next.Invoke();
