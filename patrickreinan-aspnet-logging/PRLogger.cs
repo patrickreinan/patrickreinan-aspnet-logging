@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using patrickreinan_aspnet_logging;
-using static patrickreinan_aspnet_logging.LogObject;
+using patrickreinan_aspnet_logging.Payload;
 
 namespace patrickreinan_aspnet_logging
 {
@@ -16,7 +16,6 @@ namespace patrickreinan_aspnet_logging
         private readonly IHttpContextAccessor accessor;
         private readonly string category;
         private readonly LogLevel logLevel;
-        private const string X_REQUEST_ID_HEADER = "x-request-id";
 
 
         private readonly JsonSerializerOptions jsonSerializerOptions;
@@ -30,7 +29,8 @@ namespace patrickreinan_aspnet_logging
             jsonSerializerOptions = new JsonSerializerOptions()
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                
 
 
             };
@@ -44,80 +44,33 @@ namespace patrickreinan_aspnet_logging
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
          
-
-
             if (accessor.HttpContext == null)
                 return;
 
-            var context = accessor.HttpContext;
-
-
-
-            var requestHeaders = GetHeaders(context.Request.Headers);
-
-            var request = new RequestObject(
-                requestHeaders,
-                context.Request.Path,
-                context.Request.QueryString.HasValue ? context.Request.QueryString.Value! : string.Empty,
-                context.Request.Host.Host,
-                context.Request.Host.Port.HasValue ? context.Request.Host.Port.Value : 0,
-                context.Request.Method);
-
-
-            ResponseObject? response =null;
-
-            if (state is PRLoggerState loggerState && loggerState.LogResponse)
+            LogPayload payload = state switch
             {
-                var responseHeaders = GetHeaders(context.Response.Headers);
-                response = new ResponseObject(responseHeaders, context.Response.StatusCode);
-
-            }
+                LogPayload logPayload => logPayload,
+                _ => new StringPayload(formatter(state,exception))
+            };
 
             
+            var context = accessor.HttpContext;
 
-            var id = context.Request.Headers[X_REQUEST_ID_HEADER];
-            var message = formatter(state, exception);
+            var id = context.RequestServices.GetRequiredService<PRLoggerIdManager>().GetId();
+            var level = Enum.GetName(typeof(LogLevel), logLevel) ?? String.Empty;
+
 
             var log = new LogObject(
-                id: id == StringValues.Empty ? Guid.NewGuid().ToString() : id!,
-                Enum.GetName(typeof(LogLevel), logLevel) ?? String.Empty,
-                request: request,
-                response: response,
-                message: string.IsNullOrEmpty( message) ? null : message,
-                category);
+                id,
+                level,       
+                category,
+                payload);
 
             Console.WriteLine(JsonSerializer.Serialize(log, jsonSerializerOptions));
             
+        }
+
        
-
-        }
-
-        private HeaderObject[] GetHeaders(IHeaderDictionary headers)
-        {
-            var keys = headers.Keys.ToArray();
-
-            var result = new HeaderObject[keys.Count()];
-            for (int index = 0; index < keys.Count(); index++)
-            {
-
-                var key = keys[index];
-                var builder = new StringBuilder();
-                var name = key;
-                foreach (var value in headers[key])
-                {
-                    if (builder.Length > 0)
-                        builder.Append(',');
-
-                    builder.Append(value);
-                }
-
-                result[index] = new HeaderObject(name, builder.ToString());
-
-
-            }
-
-            return result;
-        }
     }
 }
 

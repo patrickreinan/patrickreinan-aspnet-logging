@@ -1,32 +1,39 @@
-﻿namespace patrickreinan_aspnet_logging;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 
-internal class LogObject
+namespace patrickreinan_aspnet_logging;
+
+internal class LogObject 
 {
-    public LogObject(string id, string logLevel, RequestObject request, ResponseObject? response, string? message, string category)
-    {
+
+    public LogObject(
+        [NotNull] string id,
+        [NotNull] string logLevel,
+        [NotNull] string category,
+        [NotNull] object payload)
+           {
+
+
+
 
         Timespan = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
-        Request = request;
-        Response = response;
         Id = id;
         LogLevel = logLevel;
-
-        Message = message;
         Category = category;
+        Payload = payload;
+        
     }
+
     public string Id { get;  }
 
     public string LogLevel { get;  }
 
-    public string? Message { get; }
+    public object Payload { get; }
 
     public string Category { get; }
 
     public long Timespan { get;  }
 
-    public RequestObject Request { get; }
-
-    public ResponseObject? Response { get;  }
 
 
 }
