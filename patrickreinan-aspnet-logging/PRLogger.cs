@@ -43,6 +43,8 @@ namespace patrickreinan_aspnet_logging
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
+         
+
 
             if (accessor.HttpContext == null)
                 return;
@@ -58,7 +60,7 @@ namespace patrickreinan_aspnet_logging
                 context.Request.Path,
                 context.Request.QueryString.HasValue ? context.Request.QueryString.Value! : string.Empty,
                 context.Request.Host.Host,
-                context.Request.Host.Port!.Value,
+                context.Request.Host.Port.HasValue ? context.Request.Host.Port.Value : 0,
                 context.Request.Method);
 
 
@@ -71,17 +73,22 @@ namespace patrickreinan_aspnet_logging
 
             }
 
+            
+
             var id = context.Request.Headers[X_REQUEST_ID_HEADER];
+            var message = formatter(state, exception);
 
             var log = new LogObject(
                 id: id == StringValues.Empty ? Guid.NewGuid().ToString() : id!,
                 Enum.GetName(typeof(LogLevel), logLevel) ?? String.Empty,
                 request: request,
                 response: response,
-                message: formatter != null ? formatter(state, exception) : null);
+                message: string.IsNullOrEmpty( message) ? null : message,
+                category);
 
             Console.WriteLine(JsonSerializer.Serialize(log, jsonSerializerOptions));
-
+            
+       
 
         }
 

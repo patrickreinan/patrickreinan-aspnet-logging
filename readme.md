@@ -1,5 +1,5 @@
-VERSION=1.1.2
-APIKEY=xxxx
+VERSION=1.1.6
+APIKEY=oy2dkifv4u54cibiyhbqszczpvaq4p2erhspkh6ft3kuie
 
-dotnet pack -c release /p:version=1.1.2
-nuget push -Source nuget.org /Users/patrickreinan/git/patrickreinan-aspnet-logging/patrickreinan-aspnet-logging/bin/Release/patrickreinan-aspnet-logging.1.1.2.nupkg -ApiKey $APIKEY
+dotnet pack -c release /p:version=$VERSION
+nuget push -Source nuget.org ./patrickreinan-aspnet-logging/bin/Release/patrickreinan-aspnet-logging.$VERSION.nupkg -ApiKey $APIKEY

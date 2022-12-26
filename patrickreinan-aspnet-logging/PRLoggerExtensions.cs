@@ -33,16 +33,21 @@ namespace patrickreinan_aspnet_logging
             builder.Services.AddSingleton<PRLoggerConfiguration>(configure());
             return builder;
         }
-
-        public static WebApplication UsePRLogging<T>(this WebApplication app)
+  
+        public static WebApplication UsePRLogging(this WebApplication app, string categoryName)
         {
             
            app.Use(async (context, next) =>
             {
                 context.Response.OnCompleted(async () =>
                 {
+                    var factory = app.Services.GetRequiredService<ILoggerFactory>();
 
-                    var logger = app.Services.GetRequiredService<ILogger<T>>();
+
+                    var logger =factory.CreateLogger(categoryName);
+
+                    
+
                     var logLevel = context.Response.StatusCode switch
                     {
                         >= 200 and <= 299 => LogLevel.Information,
@@ -52,9 +57,22 @@ namespace patrickreinan_aspnet_logging
                         _ => LogLevel.Information
                     };
 
+                    if (!logger.IsEnabled(logLevel))
+                    {
+                        await Task.CompletedTask;
+                        return;
+                    }
+
+
                     var state = new PRLoggerState(true);
                     var eventId = new EventId(0, logLevel.ToString());
-                    logger.Log<PRLoggerState>(logLevel, eventId, state, null, (_, _) => null!);
+                    Exception? exception = null;
+
+      
+                    logger.Log<PRLoggerState>(logLevel, eventId, state, exception, (stateArg, ex) => string.Empty);
+
+
+
                     await Task.CompletedTask;
                 });
                 await next.Invoke();
