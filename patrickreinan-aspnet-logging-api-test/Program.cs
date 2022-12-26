@@ -41,7 +41,7 @@ app.MapGet("/weatherforecast", (ILogger<Program> logger) =>
     return forecast;
 });
 
-app.UsePRLogging<Program>();
+app.UsePRLogging(nameof(WeatherForecast));
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
