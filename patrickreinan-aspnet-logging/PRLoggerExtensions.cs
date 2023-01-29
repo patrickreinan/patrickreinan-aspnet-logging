@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Configuration;
 using Microsoft.AspNetCore.Builder;
+using patrickreinan_aspnet_logging.Payload;
 
 namespace patrickreinan_aspnet_logging
 {
@@ -36,17 +37,38 @@ namespace patrickreinan_aspnet_logging
   
         public static WebApplication UsePRLogging(this WebApplication app, string categoryName)
         {
-            
+
            app.Use(async (context, next) =>
             {
+
+                var factory = app.Services.GetRequiredService<ILoggerFactory>();
+
+
+                var logger = factory.CreateLogger(categoryName);
+
+                var eventId = new EventId();
+
+                var requestPayload = new RequestLogPayload(
+                          context.Request.Headers.ToHeaderObjectArray(),
+                          context.Request.Path,
+                          context.Request.QueryString.HasValue ? context.Request.QueryString.Value! : string.Empty,
+                          context.Request.Host.Host,
+                          context.Request.Host.Port.HasValue ? context.Request.Host.Port.Value : 0,
+                          context.Request.Method);
+
+                logger.Log(LogLevel.Information, eventId, requestPayload, null, (stateArg, ex) => string.Empty);
+
+
+
+
                 context.Response.OnCompleted(async () =>
                 {
-                    var factory = app.Services.GetRequiredService<ILoggerFactory>();
 
-
-                    var logger =factory.CreateLogger(categoryName);
 
                     
+                    var responsePayload = new ResponseLogPayload(
+                        context.Response.Headers.ToHeaderObjectArray(),
+                        context.Response.StatusCode);
 
                     var logLevel = context.Response.StatusCode switch
                     {
@@ -64,14 +86,11 @@ namespace patrickreinan_aspnet_logging
                     }
 
 
-                    var state = new PRLoggerState(true);
-                    var eventId = new EventId(0, logLevel.ToString());
+                   
                     Exception? exception = null;
 
-      
-                    logger.Log<PRLoggerState>(logLevel, eventId, state, exception, (stateArg, ex) => string.Empty);
 
-
+                    logger.Log(logLevel, eventId, responsePayload, exception, (stateArg, ex) => string.Empty);
 
                     await Task.CompletedTask;
                 });

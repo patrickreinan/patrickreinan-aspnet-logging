@@ -35,9 +35,10 @@ app.MapGet("/weatherforecast", (ILogger<Program> logger) =>
             summaries[Random.Shared.Next(summaries.Length)]
         ))
         .ToArray();
-    
-    
 
+
+    logger.LogInformation("teste");
+    logger.LogInformation("teste 2");
     return forecast;
 });
 

@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using patrickreinan_aspnet_logging;
-using static patrickreinan_aspnet_logging.LogObject;
+using patrickreinan_aspnet_logging.Payload;
 
 namespace patrickreinan_aspnet_logging
 {
@@ -30,7 +30,8 @@ namespace patrickreinan_aspnet_logging
             jsonSerializerOptions = new JsonSerializerOptions()
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                
 
 
             };
@@ -52,39 +53,24 @@ namespace patrickreinan_aspnet_logging
             var context = accessor.HttpContext;
 
 
-
-            var requestHeaders = GetHeaders(context.Request.Headers);
-
-            var request = new RequestObject(
-                requestHeaders,
-                context.Request.Path,
-                context.Request.QueryString.HasValue ? context.Request.QueryString.Value! : string.Empty,
-                context.Request.Host.Host,
-                context.Request.Host.Port.HasValue ? context.Request.Host.Port.Value : 0,
-                context.Request.Method);
-
-
-            ResponseObject? response =null;
-
-            if (state is PRLoggerState loggerState && loggerState.LogResponse)
+            LogPayload payload = state switch
             {
-                var responseHeaders = GetHeaders(context.Response.Headers);
-                response = new ResponseObject(responseHeaders, context.Response.StatusCode);
-
-            }
+                //string message => new StringPayload(message),
+                LogPayload logPayload => logPayload,
+                _ => new StringPayload(formatter(state,exception))
+            };
 
             
+           
 
             var id = context.Request.Headers[X_REQUEST_ID_HEADER];
-            var message = formatter(state, exception);
+
 
             var log = new LogObject(
                 id: id == StringValues.Empty ? Guid.NewGuid().ToString() : id!,
-                Enum.GetName(typeof(LogLevel), logLevel) ?? String.Empty,
-                request: request,
-                response: response,
-                message: string.IsNullOrEmpty( message) ? null : message,
-                category);
+                Enum.GetName(typeof(LogLevel), logLevel) ?? String.Empty,           
+                category,
+                payload);
 
             Console.WriteLine(JsonSerializer.Serialize(log, jsonSerializerOptions));
             
@@ -92,32 +78,7 @@ namespace patrickreinan_aspnet_logging
 
         }
 
-        private HeaderObject[] GetHeaders(IHeaderDictionary headers)
-        {
-            var keys = headers.Keys.ToArray();
-
-            var result = new HeaderObject[keys.Count()];
-            for (int index = 0; index < keys.Count(); index++)
-            {
-
-                var key = keys[index];
-                var builder = new StringBuilder();
-                var name = key;
-                foreach (var value in headers[key])
-                {
-                    if (builder.Length > 0)
-                        builder.Append(',');
-
-                    builder.Append(value);
-                }
-
-                result[index] = new HeaderObject(name, builder.ToString());
-
-
-            }
-
-            return result;
-        }
+        
     }
 }
 
