@@ -16,7 +16,6 @@ namespace patrickreinan_aspnet_logging
         private readonly IHttpContextAccessor accessor;
         private readonly string category;
         private readonly LogLevel logLevel;
-        private const string X_REQUEST_ID_HEADER = "x-request-id";
 
 
         private readonly JsonSerializerOptions jsonSerializerOptions;
@@ -45,40 +44,33 @@ namespace patrickreinan_aspnet_logging
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
          
-
-
             if (accessor.HttpContext == null)
                 return;
 
-            var context = accessor.HttpContext;
-
-
             LogPayload payload = state switch
             {
-                //string message => new StringPayload(message),
                 LogPayload logPayload => logPayload,
                 _ => new StringPayload(formatter(state,exception))
             };
 
             
-           
+            var context = accessor.HttpContext;
 
-            var id = context.Request.Headers[X_REQUEST_ID_HEADER];
+            var id = context.RequestServices.GetRequiredService<PRLoggerIdManager>().GetId();
+            var level = Enum.GetName(typeof(LogLevel), logLevel) ?? String.Empty;
 
 
             var log = new LogObject(
-                id: id == StringValues.Empty ? Guid.NewGuid().ToString() : id!,
-                Enum.GetName(typeof(LogLevel), logLevel) ?? String.Empty,           
+                id,
+                level,       
                 category,
                 payload);
 
             Console.WriteLine(JsonSerializer.Serialize(log, jsonSerializerOptions));
             
-       
-
         }
 
-        
+       
     }
 }
 

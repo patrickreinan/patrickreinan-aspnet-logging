@@ -2,7 +2,7 @@
 
 internal class RequestLogPayload : LogPayload
 {
-    public RequestLogPayload(HeaderObject[] headers, string path, string query, string host, int port, string method) 
+    public RequestLogPayload(dynamic headers, string path, string query, string host, int port, string method) 
     {
         Headers = headers;
         Path = path;
@@ -12,7 +12,7 @@ internal class RequestLogPayload : LogPayload
         Method = method;
 
     }
-    public HeaderObject[] Headers { get; }
+    public dynamic Headers { get; }
     public string Path { get; }
 
     public string Query { get; }

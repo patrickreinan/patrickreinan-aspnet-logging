@@ -2,13 +2,13 @@
 
     internal class ResponseLogPayload : LogPayload
     {
-        public ResponseLogPayload(HeaderObject[] headers, int statusCode)
+        public ResponseLogPayload(dynamic headers, int statusCode)
         {
             Headers = headers;
             StatusCode = statusCode;
         }
 
-        public HeaderObject[] Headers { get;  }
+        public dynamic Headers { get;  }
         public int StatusCode { get;  }
 
     public override string Type => "Response";

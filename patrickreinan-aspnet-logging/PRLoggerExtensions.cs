@@ -12,12 +12,15 @@ namespace patrickreinan_aspnet_logging
 {
 	public static class PRLoggerExtensions
 	{
+
+        const string PRLOGGER_LOG_ID= "prlogger-log-id";
         public static ILoggingBuilder AddPRLogger(
         this ILoggingBuilder builder)
         {
             builder.AddConfiguration();
 
             builder.Services.AddHttpContextAccessor();
+            builder.Services.AddScoped<PRLoggerIdManager>();
             builder.Services.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ILoggerProvider, PRLoggerProvider>());
 
@@ -49,7 +52,7 @@ namespace patrickreinan_aspnet_logging
                 var eventId = new EventId();
 
                 var requestPayload = new RequestLogPayload(
-                          context.Request.Headers.ToHeaderObjectArray(),
+                          context.Request.Headers.ToHeadersObject(),
                           context.Request.Path,
                           context.Request.QueryString.HasValue ? context.Request.QueryString.Value! : string.Empty,
                           context.Request.Host.Host,
@@ -59,38 +62,25 @@ namespace patrickreinan_aspnet_logging
                 logger.Log(LogLevel.Information, eventId, requestPayload, null, (stateArg, ex) => string.Empty);
 
 
+                var id = context.RequestServices.GetRequiredService<PRLoggerIdManager>().GetId();
+                context.Response.Headers.Add(PRLOGGER_LOG_ID, id);
 
 
                 context.Response.OnCompleted(async () =>
                 {
 
-
                     
                     var responsePayload = new ResponseLogPayload(
-                        context.Response.Headers.ToHeaderObjectArray(),
+                        context.Response.Headers.ToHeadersObject(),
                         context.Response.StatusCode);
 
-                    var logLevel = context.Response.StatusCode switch
-                    {
-                        >= 200 and <= 299 => LogLevel.Information,
-                        >= 300 and <= 399 => LogLevel.Warning,
-                        >= 400 and <= 499 => LogLevel.Warning,
-                        >= 500 and <= 599 => LogLevel.Error,
-                        _ => LogLevel.Information
-                    };
-
-                    if (!logger.IsEnabled(logLevel))
-                    {
-                        await Task.CompletedTask;
-                        return;
-                    }
-
+                    
 
                    
                     Exception? exception = null;
 
 
-                    logger.Log(logLevel, eventId, responsePayload, exception, (stateArg, ex) => string.Empty);
+                    logger.Log(LogLevel.Information, eventId, responsePayload, exception, (stateArg, ex) => string.Empty);
 
                     await Task.CompletedTask;
                 });
